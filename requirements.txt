@@ -16,3 +16,5 @@ uvicorn
 python-multipart
 requests
 mlflow
+onnx
+onnxruntime
