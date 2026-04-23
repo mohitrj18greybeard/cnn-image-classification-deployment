@@ -79,14 +79,20 @@ with st.sidebar:
     st.markdown("---")
     st.caption("v2.0 • PyTorch • Production")
 
-# Auto-train if needed
+# Model existence check
 path = config["paths"]["custom_model"] if model_type == "custom" else config["paths"]["efficientnet_model"]
-if not os.path.exists(path):
-    with st.spinner(f"🔄 First run — training {model_type} model (~2 min)..."):
-        quick_train(model_type)
-    st.rerun()
+model_exists = os.path.exists(path)
 
-predictor = load_model(model_type)
+if not model_exists:
+    st.warning(f"⚠️ {model_type.title()} model not found.")
+    if st.button(f"🚀 Initialize & Train {model_type.title()} (Quick Demo)"):
+        with st.spinner(f"🔄 Training {model_type} model (~2 min)..."):
+            quick_train(model_type)
+        st.success("✅ Training complete!")
+        st.rerun()
+    st.info("Note: For production, pre-train models locally and upload to the `models/saved/` directory.")
+
+predictor = load_model(model_type) if model_exists else None
 
 def call_api_predict(image_np, model_type):
     api_url = os.getenv("API_URL", "http://localhost:8000")
@@ -155,11 +161,12 @@ elif "Predict" in page:
             if api_healthy:
                 with st.spinner("Connecting to FastAPI backend..."):
                     res = call_api_predict(img_np, model_type)
-            else:
+            elif predictor:
                 st.warning("FastAPI backend is offline. Falling back to local inference.")
                 res = predictor.predict(img_np)
-            
-            if res:
+            else:
+                st.error("No model or API available for prediction.")
+                res = None
                 with c2:
                     idx = class_names.index(res["prediction"]) if res["prediction"] in class_names else 0
                     st.markdown(f'<div class="pred-box"><h2 style="color:white">{emojis[idx]} {res["prediction"].upper()}</h2><h3 style="color:#6ee7b7">{res["confidence"]:.1%} confidence</h3></div>', unsafe_allow_html=True)
