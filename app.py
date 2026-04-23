@@ -5,6 +5,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
+import requests
+import io
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -86,6 +88,33 @@ if not os.path.exists(path):
 
 predictor = load_model(model_type)
 
+def call_api_predict(image_np, model_type):
+    api_url = os.getenv("API_URL", "http://localhost:8000")
+    try:
+        # Convert numpy array to bytes
+        img_pil = Image.fromarray(image_np)
+        buf = io.BytesIO()
+        img_pil.save(buf, format="JPEG")
+        files = {"file": ("image.jpg", buf.getvalue(), "image/jpeg")}
+        params = {"model": model_type}
+        response = requests.post(f"{api_url}/predict", files=files, params=params, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except Exception as e:
+        st.error(f"API Error: {e}")
+        return None
+
+# Check API health
+api_url = os.getenv("API_URL", "http://localhost:8000")
+api_healthy = False
+try:
+    health_res = requests.get(f"{api_url}/health", timeout=2)
+    if health_res.status_code == 200:
+        api_healthy = True
+except:
+    pass
+
 # ── HOME ──
 if "Home" in page:
     st.markdown('<div class="hero"><h1>🌿 PlantGuard AI</h1><p>Production-grade Deep Learning Image Classification System</p></div>', unsafe_allow_html=True)
@@ -121,12 +150,21 @@ elif "Predict" in page:
             img_np = np.array(img)
             c1, c2 = st.columns(2)
             c1.image(img, caption="Uploaded", use_container_width=True)
-            res = predictor.predict(img_np)
-            with c2:
-                idx = class_names.index(res["prediction"]) if res["prediction"] in class_names else 0
-                st.markdown(f'<div class="pred-box"><h2 style="color:white">{emojis[idx]} {res["prediction"].upper()}</h2><h3 style="color:#6ee7b7">{res["confidence"]:.1%} confidence</h3></div>', unsafe_allow_html=True)
-                for r in res["top_k"]:
-                    st.progress(r["confidence"], text=f"{r['class'].title()} — {r['confidence']:.1%}")
+            
+            # Predict via API
+            if api_healthy:
+                with st.spinner("Connecting to FastAPI backend..."):
+                    res = call_api_predict(img_np, model_type)
+            else:
+                st.warning("FastAPI backend is offline. Falling back to local inference.")
+                res = predictor.predict(img_np)
+            
+            if res:
+                with c2:
+                    idx = class_names.index(res["prediction"]) if res["prediction"] in class_names else 0
+                    st.markdown(f'<div class="pred-box"><h2 style="color:white">{emojis[idx]} {res["prediction"].upper()}</h2><h3 style="color:#6ee7b7">{res["confidence"]:.1%} confidence</h3></div>', unsafe_allow_html=True)
+                    for r in res["top_k"]:
+                        st.progress(r["confidence"], text=f"{r['class'].title()} — {r['confidence']:.1%}")
     with t2:
         if st.button("🎲 Random Test Image", use_container_width=True) and predictor:
             from torchvision import datasets

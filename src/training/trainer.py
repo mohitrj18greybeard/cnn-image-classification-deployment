@@ -1,6 +1,7 @@
 """Training engine with validation, scheduling, early stopping, and metric tracking."""
 import os, time, logging, torch, torch.nn as nn, torch.optim as optim
 import numpy as np
+import mlflow
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 from tqdm import tqdm
 
@@ -31,45 +32,63 @@ class Trainer:
 
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         log.info(f"Training {name} on {self.device} for {epochs} epochs")
-        t0 = time.time()
+        
+        mlflow.set_experiment("PlantGuard AI")
+        with mlflow.start_run(run_name=name):
+            # Log hyperparameters
+            mlflow.log_params(self.cfg)
+            mlflow.log_param("model_name", name)
+            mlflow.log_param("device", str(self.device))
 
-        for epoch in range(epochs):
-            model.train()
-            running_loss, correct, total = 0.0, 0, 0
-            pbar = tqdm(train_loader, desc=f"[{name}] Epoch {epoch+1}/{epochs}", leave=False)
-            for inputs, labels in pbar:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                optimizer.zero_grad()
-                loss = criterion(model(inputs), labels)
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-                optimizer.step()
-                running_loss += loss.item()
-                _, pred = model(inputs).max(1)
-                total += labels.size(0); correct += pred.eq(labels).sum().item()
-                pbar.set_postfix(loss=f"{running_loss/max(1,pbar.n):.4f}", acc=f"{100.*correct/total:.1f}%")
+            t0 = time.time()
+            for epoch in range(epochs):
+                model.train()
+                running_loss, correct, total = 0.0, 0, 0
+                pbar = tqdm(train_loader, desc=f"[{name}] Epoch {epoch+1}/{epochs}", leave=False)
+                for inputs, labels in pbar:
+                    inputs, labels = inputs.to(self.device), labels.to(self.device)
+                    optimizer.zero_grad()
+                    loss = criterion(model(inputs), labels)
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                    optimizer.step()
+                    running_loss += loss.item()
+                    _, pred = model(inputs).max(1)
+                    total += labels.size(0); correct += pred.eq(labels).sum().item()
+                    pbar.set_postfix(loss=f"{running_loss/max(1,pbar.n):.4f}", acc=f"{100.*correct/total:.1f}%")
 
-            train_loss = running_loss / len(train_loader)
-            train_acc = correct / total
-            val_loss, val_acc = self._validate(model, val_loader, criterion)
-            lr = optimizer.param_groups[0]["lr"]
-            scheduler.step()
+                train_loss = running_loss / len(train_loader)
+                train_acc = correct / total
+                val_loss, val_acc = self._validate(model, val_loader, criterion)
+                lr = optimizer.param_groups[0]["lr"]
+                scheduler.step()
 
-            history["loss"].append(train_loss); history["accuracy"].append(train_acc)
-            history["val_loss"].append(val_loss); history["val_accuracy"].append(val_acc)
-            history["lr"].append(lr)
-            log.info(f"Epoch {epoch+1}: loss={train_loss:.4f} acc={train_acc:.4f} "
-                     f"val_loss={val_loss:.4f} val_acc={val_acc:.4f} lr={lr:.6f}")
+                history["loss"].append(train_loss); history["accuracy"].append(train_acc)
+                history["val_loss"].append(val_loss); history["val_accuracy"].append(val_acc)
+                history["lr"].append(lr)
+                
+                # Log to MLflow
+                mlflow.log_metric("train_loss", train_loss, step=epoch)
+                mlflow.log_metric("train_acc", train_acc, step=epoch)
+                mlflow.log_metric("val_loss", val_loss, step=epoch)
+                mlflow.log_metric("val_acc", val_acc, step=epoch)
+                mlflow.log_metric("lr", lr, step=epoch)
 
-            if val_acc > best_acc + es["min_delta"]:
-                best_acc = val_acc; patience_counter = 0
-                torch.save(model.state_dict(), save_path)
-                log.info(f"  ✓ Saved best model ({best_acc:.4f})")
-            else:
-                patience_counter += 1
-                if patience_counter >= es["patience"]:
-                    log.info(f"  Early stopping at epoch {epoch+1}"); break
+                log.info(f"Epoch {epoch+1}: loss={train_loss:.4f} acc={train_acc:.4f} "
+                         f"val_loss={val_loss:.4f} val_acc={val_acc:.4f} lr={lr:.6f}")
 
+                if val_acc > best_acc + es["min_delta"]:
+                    best_acc = val_acc; patience_counter = 0
+                    torch.save(model.state_dict(), save_path)
+                    log.info(f"  ✓ Saved best model ({best_acc:.4f})")
+                else:
+                    patience_counter += 1
+                    if patience_counter >= es["patience"]:
+                        log.info(f"  Early stopping at epoch {epoch+1}"); break
+
+            # Log final best model
+            mlflow.pytorch.log_model(model, "model")
+            
         elapsed = time.time() - t0
         return {"history": history, "best_val_accuracy": best_acc,
                 "training_time": elapsed, "epochs_trained": epoch + 1}

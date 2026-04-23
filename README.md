@@ -2,6 +2,7 @@
   <img src="https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?style=for-the-badge&logo=pytorch" />
   <img src="https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi" />
   <img src="https://img.shields.io/badge/Streamlit-1.28+-FF4B4B?style=for-the-badge&logo=streamlit" />
+  <img src="https://img.shields.io/badge/MLflow-2.0+-0194E2?style=for-the-badge&logo=mlflow" />
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker" />
   <img src="https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions" />
 </p>
@@ -10,7 +11,7 @@
 <h3 align="center">Production-Grade Deep Learning Image Classification System</h3>
 
 <p align="center">
-An end-to-end, FAANG-level computer vision system featuring <b>Custom CNN vs EfficientNet</b> model comparison, <b>Grad-CAM explainability</b>, <b>FastAPI microservice</b>, and <b>interactive Streamlit dashboard</b> — fully containerized with CI/CD.
+An end-to-end, FAANG-level computer vision system featuring <b>Custom CNN vs EfficientNet</b> model comparison, <b>Grad-CAM explainability</b>, <b>FastAPI microservice</b>, <b>MLflow experiment tracking</b>, and <b>interactive Streamlit dashboard</b> — fully containerized with CI/CD.
 </p>
 
 ---
@@ -92,6 +93,7 @@ cnn-image-classification-deployment/
 - **Cosine Annealing** learning rate schedule
 - **Early Stopping** with patience tracking
 - **Gradient Clipping** for training stability
+- **MLflow Integration**: Tracking parameters, metrics (accuracy, loss), and model versioning
 - **Model Comparison** pipeline with serialized results
 
 ---
@@ -188,6 +190,7 @@ Response:
 | Deep Learning | PyTorch, torchvision |
 | Models | Custom ResNet CNN, EfficientNet-B0 |
 | Backend API | FastAPI, Uvicorn |
+| MLOps | MLflow |
 | Frontend | Streamlit |
 | Explainability | Grad-CAM |
 | Data Science | NumPy, Pandas, Scikit-learn |
