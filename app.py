@@ -8,7 +8,13 @@ import torch
 import numpy as np
 from PIL import Image
 import os
+import sys
 import pickle
+
+# Ensure the project root is in the python path for Streamlit Cloud
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 import matplotlib.pyplot as plt
 from src.utils.helpers import load_config
 from src.data.dataset import DatasetLoader
