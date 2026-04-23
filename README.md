@@ -16,21 +16,19 @@ The goal is to showcase deep learning expertise, computer‑vision fundamentals,
 
 The project uses the **CIFAR‑10** dataset (10 classes, 60 k images) which is readily available via `torchvision.datasets`. The dataset is automatically downloaded and split into training/validation/test sets. Users can also replace it with a custom folder‑structured dataset – just point `src/data/dataset.py` to your local path.
 
-## Approach
+## Approach (PyTorch Version)
 
-1. **Data Pipeline** – `src/data/dataset.py` loads CIFAR‑10, applies resizing to 224 px, normalisation and **augmentation** (`src/data/augmentation.py` – random flip, rotation, zoom, colour jitter).
+1. **Data Pipeline** – `src/data/dataset.py` loads CIFAR-10, applies resizing, normalization and **augmentation** using `torchvision.transforms`.
 2. **Model Architectures** –
-   - `src/models/custom_cnn.py` – a handcrafted CNN built from scratch.
-   - `src/models/transfer_learning.py` – ResNet‑18 and EfficientNet‑B0 back‑bones from `torchvision.models`, fine‑tuned on CIFAR‑10.
-3. **Training** – `src/training/trainer.py` orchestrates training loops, learning‑rate scheduling, early stopping, and checkpointing (`src/models/saved/`).
-4. **Evaluation** – `src/evaluation/evaluator.py` computes accuracy, precision, recall, F1‑score, confusion matrix, and visualises Grad‑CAM heatmaps (`src/visualization/gradcam.py`).
-5. **Inference API** – `src/utils/helpers.py` provides `predict(image_path, model)` returning class probabilities and Grad‑CAM overlay.
-6. **Streamlit Dashboard** – `streamlit_app.py` offers:
-   - Image upload
-   - Real‑time prediction with confidence scores
-   - Grad‑CAM visualisation
-   - Model selection (custom vs. transfer‑learning)
-   - Performance summary (metrics from latest evaluation)
+   - `src/models/custom_cnn.py` – A handcrafted deep residual CNN built with PyTorch.
+   - `src/models/transfer_learning.py` – EfficientNet-B0 backbone from `torchvision.models`, fine-tuned for CIFAR-10.
+3. **Training** – `src/training/trainer.py` orchestrates the training loop, validation, and checkpointing.
+4. **Evaluation** – `src/evaluation/evaluator.py` computes accuracy, confusion matrix, and per-class metrics.
+5. **Explainability** – `src/visualization/gradcam.py` implements Gradient-weighted Class Activation Mapping for PyTorch to visualize model focus.
+6. **Dashboard** – `app.py` provides an interactive UI for predictions and Grad-CAM visualization.
+
+## Compatibility Note
+This project is optimized for **Python 3.14+** and uses **PyTorch** for deep learning operations, ensuring performance and stability on modern environments.
 
 ## Results
 
@@ -69,7 +67,7 @@ pip install -r requirements.txt
 python train.py --model custom_cnn   # or --model resnet18, efficientnet_b0
 
 # Launch the dashboard
-streamlit run streamlit_app.py
+streamlit run app.py
 ```
 
 ---

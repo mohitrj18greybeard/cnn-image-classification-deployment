@@ -76,8 +76,8 @@ training:
 
 # Model Paths
 paths:
-  custom_model: "models/saved/custom_cnn_best.keras"
-  transfer_model: "models/saved/transfer_learning_best.keras"
+  custom_model: "models/saved/custom_cnn_best.pt"
+  transfer_model: "models/saved/transfer_learning_best.pt"
   training_history: "models/saved/training_history.pkl"
   comparison_results: "models/saved/comparison_results.pkl"
 

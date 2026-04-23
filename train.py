@@ -35,6 +35,20 @@ def main():
     evaluator = ModelEvaluator(loader.get_class_names())
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    if args.quick:
+        # Override loader to return small subsets
+        def get_quick_loaders(for_transfer=False):
+            train_ds, val_ds, test_ds = loader.load_data(for_transfer)
+            from torch.utils.data import Subset
+            train_ds = Subset(train_ds, range(200))
+            val_ds = Subset(val_ds, range(100))
+            test_ds = Subset(test_ds, range(100))
+            from torch.utils.data import DataLoader
+            return (DataLoader(train_ds, batch_size=32, shuffle=True),
+                    DataLoader(val_ds, batch_size=32),
+                    DataLoader(test_ds, batch_size=32))
+        loader.get_loaders = get_quick_loaders
+
     results_all = {}
     histories_all = {}
 
