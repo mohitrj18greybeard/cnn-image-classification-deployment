@@ -1,7 +1,26 @@
 """Training engine with validation, scheduling, early stopping, and metric tracking."""
 import os, time, logging, torch, torch.nn as nn, torch.optim as optim
 import numpy as np
-import mlflow
+try:
+    import mlflow
+    HAS_MLFLOW = True
+except ImportError:
+    HAS_MLFLOW = False
+    log.warning("MLflow not found or failed to import. Experiment tracking will be disabled.")
+    # Simple mock for MLflow
+    class MockMLflow:
+        def set_experiment(self, *args, **kwargs): pass
+        def start_run(self, *args, **kwargs): return self
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def log_params(self, *args, **kwargs): pass
+        def log_param(self, *args, **kwargs): pass
+        def log_metric(self, *args, **kwargs): pass
+        class pytorch:
+            @staticmethod
+            def log_model(*args, **kwargs): pass
+    mlflow = MockMLflow()
+
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 from tqdm import tqdm
 

@@ -15,7 +15,6 @@ from src.utils.helpers import load_config, set_seed
 from src.data.dataset import DatasetLoader
 from src.models.custom_cnn import CustomCNN
 from src.models.efficientnet import EfficientNetClassifier
-from src.training.trainer import Trainer
 from src.inference.predictor import Predictor
 from src.explainability.gradcam import GradCAM
 
@@ -55,6 +54,7 @@ def load_model(model_type):
         return None
 
 def quick_train(model_type):
+    from src.training.trainer import Trainer
     loader = DatasetLoader(config)
     trainer = Trainer(config, device)
     if model_type == "custom":
