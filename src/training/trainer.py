@@ -1,94 +1,104 @@
-"""
-Model Training Pipeline (PyTorch Version)
-========================================
-Training loop, validation, and checkpointing for PyTorch models.
-"""
-
-import os
-import torch
-import torch.nn as nn
-import torch.optim as optim
+"""Training engine with validation, scheduling, early stopping, and metric tracking."""
+import os, time, logging, torch, torch.nn as nn, torch.optim as optim
+import numpy as np
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 from tqdm import tqdm
-import logging
-import time
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
+class Trainer:
+    def __init__(self, config, device=None):
+        self.cfg = config["training"]
+        self.device = device or torch.device("cpu")
 
-class ModelTrainer:
-    def __init__(self, config):
-        self.config = config
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.epochs = config["training"]["epochs"]
-        self.lr = config["training"]["learning_rate"]
+    def _build_optimizer(self, model):
+        return optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
+                          lr=self.cfg["learning_rate"], weight_decay=self.cfg["weight_decay"])
 
-    def train(self, model, train_loader, val_loader, save_path, model_name="model"):
+    def _build_scheduler(self, optimizer):
+        sc = self.cfg["scheduler"]
+        return optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=sc["T_max"], eta_min=sc["eta_min"])
+
+    def train(self, model, train_loader, val_loader, save_path, name="model", epochs=None):
         model.to(self.device)
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=self.lr)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
+        optimizer = self._build_optimizer(model)
+        scheduler = self._build_scheduler(optimizer)
+        epochs = epochs or self.cfg["epochs"]
+        best_acc, patience_counter = 0.0, 0
+        es = self.cfg["early_stopping"]
+        history = {"loss": [], "accuracy": [], "val_loss": [], "val_accuracy": [], "lr": []}
 
-        best_acc = 0.0
-        history = {"loss": [], "accuracy": [], "val_loss": [], "val_accuracy": []}
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        log.info(f"Training {name} on {self.device} for {epochs} epochs")
+        t0 = time.time()
 
-        logger.info(f"Starting training: {model_name} on {self.device}")
-
-        for epoch in range(self.epochs):
+        for epoch in range(epochs):
             model.train()
-            running_loss = 0.0
-            correct = 0
-            total = 0
-            
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{self.epochs}")
+            running_loss, correct, total = 0.0, 0, 0
+            pbar = tqdm(train_loader, desc=f"[{name}] Epoch {epoch+1}/{epochs}", leave=False)
             for inputs, labels in pbar:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
-                
                 optimizer.zero_grad()
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
+                loss = criterion(model(inputs), labels)
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
-                
                 running_loss += loss.item()
-                _, predicted = outputs.max(1)
-                total += labels.size(0)
-                correct += predicted.eq(labels).sum().item()
-                
-                pbar.set_postfix({"loss": f"{running_loss/len(train_loader):.4f}", "acc": f"{100.*correct/total:.2f}%"})
+                _, pred = model(inputs).max(1)
+                total += labels.size(0); correct += pred.eq(labels).sum().item()
+                pbar.set_postfix(loss=f"{running_loss/max(1,pbar.n):.4f}", acc=f"{100.*correct/total:.1f}%")
 
             train_loss = running_loss / len(train_loader)
             train_acc = correct / total
-            
-            # Validation
-            val_loss, val_acc = self.validate(model, val_loader, criterion)
-            scheduler.step(val_loss)
-            
-            history["loss"].append(train_loss)
-            history["accuracy"].append(train_acc)
-            history["val_loss"].append(val_loss)
-            history["val_accuracy"].append(val_acc)
-            
-            logger.info(f"Epoch {epoch+1}: Loss={train_loss:.4f}, Acc={train_acc:.4f}, ValLoss={val_loss:.4f}, ValAcc={val_acc:.4f}")
+            val_loss, val_acc = self._validate(model, val_loader, criterion)
+            lr = optimizer.param_groups[0]["lr"]
+            scheduler.step()
 
-            if val_acc > best_acc:
-                best_acc = val_acc
+            history["loss"].append(train_loss); history["accuracy"].append(train_acc)
+            history["val_loss"].append(val_loss); history["val_accuracy"].append(val_acc)
+            history["lr"].append(lr)
+            log.info(f"Epoch {epoch+1}: loss={train_loss:.4f} acc={train_acc:.4f} "
+                     f"val_loss={val_loss:.4f} val_acc={val_acc:.4f} lr={lr:.6f}")
+
+            if val_acc > best_acc + es["min_delta"]:
+                best_acc = val_acc; patience_counter = 0
                 torch.save(model.state_dict(), save_path)
-                logger.info(f"Saved best model to {save_path}")
+                log.info(f"  ✓ Saved best model ({best_acc:.4f})")
+            else:
+                patience_counter += 1
+                if patience_counter >= es["patience"]:
+                    log.info(f"  Early stopping at epoch {epoch+1}"); break
 
-        return {"history": history, "best_val_accuracy": best_acc}
+        elapsed = time.time() - t0
+        return {"history": history, "best_val_accuracy": best_acc,
+                "training_time": elapsed, "epochs_trained": epoch + 1}
 
-    def validate(self, model, loader, criterion):
+    def _validate(self, model, loader, criterion):
         model.eval()
-        running_loss = 0.0
-        correct = 0
-        total = 0
+        loss, correct, total = 0.0, 0, 0
         with torch.no_grad():
-            for inputs, labels in loader:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-                running_loss += loss.item()
-                _, predicted = outputs.max(1)
-                total += labels.size(0)
-                correct += predicted.eq(labels).sum().item()
-        return running_loss / len(loader), correct / total
+            for x, y in loader:
+                x, y = x.to(self.device), y.to(self.device)
+                out = model(x); loss += criterion(out, y).item()
+                _, pred = out.max(1); total += y.size(0); correct += pred.eq(y).sum().item()
+        return loss / len(loader), correct / total
+
+    def evaluate(self, model, loader, class_names):
+        model.to(self.device); model.eval()
+        all_preds, all_labels, all_probs = [], [], []
+        with torch.no_grad():
+            for x, y in loader:
+                out = model(x.to(self.device))
+                probs = torch.softmax(out, 1)
+                all_probs.extend(probs.cpu().numpy())
+                all_preds.extend(out.argmax(1).cpu().numpy())
+                all_labels.extend(y.numpy())
+        y_true, y_pred = np.array(all_labels), np.array(all_preds)
+        acc = accuracy_score(y_true, y_pred)
+        p, r, f1, _ = precision_recall_fscore_support(y_true, y_pred, average="weighted", zero_division=0)
+        cm = confusion_matrix(y_true, y_pred)
+        per_class = {class_names[i]: float(cm[i, i] / max(cm[i].sum(), 1)) for i in range(len(class_names))}
+        return {"accuracy": acc, "precision": p, "recall": r, "f1_score": f1,
+                "confusion_matrix": cm, "per_class_accuracy": per_class,
+                "predictions": y_pred, "labels": y_true, "probabilities": np.array(all_probs)}

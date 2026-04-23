@@ -1,114 +1,77 @@
-"""
-Dataset Loading and Preprocessing Module (PyTorch Version)
-========================================================
-Handles CIFAR-10 dataset loading, transforms, and splitting.
-"""
-
-import os
-import torch
+"""Dataset loading with torchvision — supports CIFAR-10 and custom folders."""
+import os, logging, numpy as np, torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Subset
-import numpy as np
-import logging
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
+CIFAR_MEAN, CIFAR_STD = [0.4914, 0.4822, 0.4465], [0.2470, 0.2435, 0.2616]
+IMAGENET_MEAN, IMAGENET_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
 class DatasetLoader:
-    """Production-grade dataset loader for CIFAR-10 image classification using PyTorch."""
+    CLASS_NAMES = ["airplane","automobile","bird","cat","deer",
+                   "dog","frog","horse","ship","truck"]
 
-    CLASS_NAMES = [
-        "airplane", "automobile", "bird", "cat", "deer",
-        "dog", "frog", "horse", "ship", "truck"
-    ]
+    def __init__(self, config):
+        self.cfg = config
+        self.img_size = config["dataset"]["image_size"]
+        self.up_size = config["dataset"]["upscale_size"]
+        self.bs = config["training"]["batch_size"]
+        self.val_split = config["dataset"]["val_split"]
+        os.makedirs(config["paths"]["data_dir"], exist_ok=True)
 
-    # CIFAR-10 Normalization Stats
-    CIFAR10_MEAN = [0.4914, 0.4822, 0.4465]
-    CIFAR10_STD = [0.2470, 0.2435, 0.2616]
+    def _transforms(self, train=False, transfer=False):
+        size = self.up_size if transfer else self.img_size
+        mean, std = (IMAGENET_MEAN, IMAGENET_STD) if transfer else (CIFAR_MEAN, CIFAR_STD)
+        if train:
+            aug = self.cfg["augmentation"]
+            t = [transforms.Resize((size, size)),
+                 transforms.RandomHorizontalFlip(),
+                 transforms.RandomRotation(aug["rotation_range"]),
+                 transforms.ColorJitter(**aug["color_jitter"]),
+                 transforms.RandomErasing(p=aug["random_erasing"]),
+                 transforms.ToTensor(), transforms.Normalize(mean, std)]
+            # RandomErasing must be after ToTensor
+            t_ordered = t[:4] + [t[5], t[6], t[4]]
+            return transforms.Compose(t_ordered)
+        return transforms.Compose([
+            transforms.Resize((size, size)),
+            transforms.ToTensor(), transforms.Normalize(mean, std)])
 
-    def __init__(self, config: dict):
-        """
-        Initialize DatasetLoader.
+    def get_loaders(self, transfer=False, subset_size=None):
+        train_tf = self._transforms(train=True, transfer=transfer)
+        val_tf = self._transforms(train=False, transfer=transfer)
+        data_dir = self.cfg["paths"]["data_dir"]
 
-        Args:
-            config: Configuration dictionary.
-        """
-        self.config = config
-        self.image_size = config["dataset"]["image_size"]
-        self.upscale_size = config["dataset"]["upscale_size"]
-        self.batch_size = config["training"]["batch_size"]
-        self.val_split = config["dataset"]["validation_split"]
-        self.data_dir = "data"
-        os.makedirs(self.data_dir, exist_ok=True)
+        full_train = datasets.CIFAR10(data_dir, train=True, download=True, transform=train_tf)
+        test_ds = datasets.CIFAR10(data_dir, train=False, download=True, transform=val_tf)
 
-    def get_transforms(self, augment=False, for_transfer=False):
-        """Get train/val/test transforms."""
-        size = self.upscale_size if for_transfer else self.image_size
-        
-        tf_list = []
-        if augment:
-            aug_cfg = self.config["augmentation"]
-            tf_list.extend([
-                transforms.RandomHorizontalFlip() if aug_cfg["horizontal_flip"] else None,
-                transforms.RandomRotation(aug_cfg["rotation_range"]),
-                transforms.RandomResizedCrop(size, scale=(0.8, 1.0)) if aug_cfg["zoom_range"] > 0 else None,
-                transforms.ColorJitter(brightness=0.2, contrast=0.2)
-            ])
-            tf_list = [t for t in tf_list if t is not None]
-        else:
-            tf_list.append(transforms.Resize((size, size)))
+        n = len(full_train)
+        idx = np.random.RandomState(42).permutation(n)
+        split = int(self.val_split * n)
+        train_idx, val_idx = idx[split:], idx[:split]
 
-        tf_list.extend([
-            transforms.ToTensor(),
-            transforms.Normalize(self.CIFAR10_MEAN, self.CIFAR10_STD)
-        ])
-        
-        return transforms.Compose(tf_list)
+        if subset_size:
+            train_idx = train_idx[:subset_size]
+            val_idx = val_idx[:min(subset_size // 5, len(val_idx))]
 
-    def load_data(self, for_transfer=False):
-        """Load and split CIFAR-10 dataset."""
-        logger.info(f"Loading CIFAR-10 (Transfer={for_transfer})...")
+        train_ds = Subset(full_train, train_idx)
+        val_ds = Subset(datasets.CIFAR10(data_dir, train=True, transform=val_tf), val_idx)
 
-        train_tf = self.get_transforms(augment=True, for_transfer=for_transfer)
-        val_tf = self.get_transforms(augment=False, for_transfer=for_transfer)
-        test_tf = self.get_transforms(augment=False, for_transfer=for_transfer)
+        if subset_size:
+            test_ds = Subset(test_ds, range(min(subset_size // 2, len(test_ds))))
 
-        full_train_ds = datasets.CIFAR10(root=self.data_dir, train=True, download=True, transform=train_tf)
-        test_ds = datasets.CIFAR10(root=self.data_dir, train=False, download=True, transform=test_tf)
-
-        # Split validation
-        num_train = len(full_train_ds)
-        indices = list(range(num_train))
-        split = int(np.floor(self.val_split * num_train))
-        np.random.seed(42)
-        np.random.shuffle(indices)
-
-        train_idx, val_idx = indices[split:], indices[:split]
-
-        # Use different transform for validation by re-wrapping subset
-        train_ds = Subset(full_train_ds, train_idx)
-        val_ds = Subset(datasets.CIFAR10(root=self.data_dir, train=True, transform=val_tf), val_idx)
-
-        logger.info(f"Loaded: Train={len(train_ds)}, Val={len(val_ds)}, Test={len(test_ds)}")
-
-        return train_ds, val_ds, test_ds
-
-    def get_loaders(self, for_transfer=False):
-        """Get PyTorch DataLoaders."""
-        train_ds, val_ds, test_ds = self.load_data(for_transfer)
-        
-        train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True, num_workers=2)
-        val_loader = DataLoader(val_ds, batch_size=self.batch_size, shuffle=False, num_workers=2)
-        test_loader = DataLoader(test_ds, batch_size=self.batch_size, shuffle=False, num_workers=2)
-        
-        return train_loader, val_loader, test_loader
+        nw = 0  # Windows-safe
+        return (DataLoader(train_ds, self.bs, shuffle=True, num_workers=nw),
+                DataLoader(val_ds, self.bs, num_workers=nw),
+                DataLoader(test_ds, self.bs, num_workers=nw))
 
     def get_class_names(self):
         return self.CLASS_NAMES
 
-    def preprocess_image(self, image_np, for_transfer=False):
-        """Preprocess single image for inference."""
+    def preprocess_image(self, img_np, transfer=False):
         from PIL import Image
-        img = Image.fromarray(image_np)
-        tf = self.get_transforms(augment=False, for_transfer=for_transfer)
+        img = Image.fromarray(img_np) if not isinstance(img_np, Image.Image) else img_np
+        img = img.convert("RGB")
+        tf = self._transforms(train=False, transfer=transfer)
         return tf(img).unsqueeze(0)

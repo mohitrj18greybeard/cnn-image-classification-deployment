@@ -1,20 +1,20 @@
-# ============================================
-# Project Configuration
-# Deep Learning Image Classification System
-# ============================================
+# ═══════════════════════════════════════════════════
+# PlantGuard AI — Configuration
+# Production-grade Plant Disease Detection System
+# ═══════════════════════════════════════════════════
 
 project:
-  name: "DeepVision CNN Classifier"
-  version: "1.0.0"
-  description: "Production-grade deep learning image classification system"
+  name: "PlantGuard AI"
+  version: "2.0.0"
+  description: "Production-grade plant disease detection using deep learning"
+  use_case: "plant_disease"
 
-# Dataset Configuration
 dataset:
   name: "CIFAR-10"
   num_classes: 10
   image_size: 32
-  upscale_size: 96  # For transfer learning models
-  classes:
+  upscale_size: 224
+  class_names:
     - airplane
     - automobile
     - bird
@@ -25,64 +25,56 @@ dataset:
     - horse
     - ship
     - truck
-  validation_split: 0.1
-  test_split: 0.2
+  val_split: 0.1
 
-# Data Augmentation
 augmentation:
-  rotation_range: 15
-  width_shift_range: 0.1
-  height_shift_range: 0.1
   horizontal_flip: true
-  vertical_flip: false
-  zoom_range: 0.1
-  shear_range: 0.1
-  brightness_range: [0.8, 1.2]
-  fill_mode: "nearest"
+  rotation_range: 15
+  color_jitter:
+    brightness: 0.2
+    contrast: 0.2
+    saturation: 0.1
+    hue: 0.05
+  random_erasing: 0.1
 
-# Custom CNN Architecture
-custom_cnn:
-  filters: [64, 128, 256, 512]
-  kernel_size: 3
-  pool_size: 2
-  dense_units: [512, 256]
-  dropout_rate: 0.4
-  batch_norm: true
-  activation: "relu"
+models:
+  custom_cnn:
+    filters: [64, 128, 256, 512]
+    dropout: 0.4
+    num_classes: 10
+  efficientnet:
+    backbone: "efficientnet_b0"
+    pretrained: true
+    freeze_backbone: true
+    fine_tune_layers: 20
+    dropout: 0.3
+    num_classes: 10
 
-# Transfer Learning
-transfer_learning:
-  model_name: "EfficientNetB0"  # Options: EfficientNetB0, ResNet50, VGG16
-  fine_tune: true
-  fine_tune_layers: 20
-  dense_units: [256, 128]
-  dropout_rate: 0.3
-
-# Training Configuration
 training:
   batch_size: 64
-  epochs: 50
+  epochs: 30
   learning_rate: 0.001
-  optimizer: "adam"
-  lr_scheduler:
-    type: "reduce_on_plateau"
-    factor: 0.5
-    patience: 5
-    min_lr: 0.00001
+  weight_decay: 0.0001
+  scheduler:
+    type: "cosine"
+    T_max: 30
+    eta_min: 0.00001
   early_stopping:
-    patience: 10
-    restore_best_weights: true
-  label_smoothing: 0.1
+    patience: 8
+    min_delta: 0.001
 
-# Model Paths
 paths:
-  custom_model: "models/saved/custom_cnn_best.pt"
-  transfer_model: "models/saved/transfer_learning_best.pt"
-  training_history: "models/saved/training_history.pkl"
-  comparison_results: "models/saved/comparison_results.pkl"
+  custom_model: "models/saved/custom_cnn.pt"
+  efficientnet_model: "models/saved/efficientnet.pt"
+  comparison: "models/saved/comparison.pkl"
+  data_dir: "data"
 
-# Grad-CAM Configuration
-gradcam:
-  layer_name: null  # Auto-detect last conv layer
-  colormap: "jet"
-  alpha: 0.4
+api:
+  host: "0.0.0.0"
+  port: 8000
+  max_file_size_mb: 10
+
+inference:
+  confidence_threshold: 0.5
+  top_k: 5
+  device: "auto"
