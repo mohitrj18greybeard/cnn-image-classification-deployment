@@ -1,6 +1,6 @@
-"""Training engine with validation, scheduling, early stopping, and metric tracking."""
 import os, time, logging, torch, torch.nn as nn, torch.optim as optim
 import numpy as np
+log = logging.getLogger(__name__)
 try:
     import mlflow
     HAS_MLFLOW = True
@@ -24,7 +24,7 @@ except ImportError:
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 from tqdm import tqdm
 
-log = logging.getLogger(__name__)
+
 
 class Trainer:
     def __init__(self, config, device=None):
