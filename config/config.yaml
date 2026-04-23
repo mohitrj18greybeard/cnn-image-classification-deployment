@@ -1,0 +1,88 @@
+# ============================================
+# Project Configuration
+# Deep Learning Image Classification System
+# ============================================
+
+project:
+  name: "DeepVision CNN Classifier"
+  version: "1.0.0"
+  description: "Production-grade deep learning image classification system"
+
+# Dataset Configuration
+dataset:
+  name: "CIFAR-10"
+  num_classes: 10
+  image_size: 32
+  upscale_size: 96  # For transfer learning models
+  classes:
+    - airplane
+    - automobile
+    - bird
+    - cat
+    - deer
+    - dog
+    - frog
+    - horse
+    - ship
+    - truck
+  validation_split: 0.1
+  test_split: 0.2
+
+# Data Augmentation
+augmentation:
+  rotation_range: 15
+  width_shift_range: 0.1
+  height_shift_range: 0.1
+  horizontal_flip: true
+  vertical_flip: false
+  zoom_range: 0.1
+  shear_range: 0.1
+  brightness_range: [0.8, 1.2]
+  fill_mode: "nearest"
+
+# Custom CNN Architecture
+custom_cnn:
+  filters: [64, 128, 256, 512]
+  kernel_size: 3
+  pool_size: 2
+  dense_units: [512, 256]
+  dropout_rate: 0.4
+  batch_norm: true
+  activation: "relu"
+
+# Transfer Learning
+transfer_learning:
+  model_name: "EfficientNetB0"  # Options: EfficientNetB0, ResNet50, VGG16
+  fine_tune: true
+  fine_tune_layers: 20
+  dense_units: [256, 128]
+  dropout_rate: 0.3
+
+# Training Configuration
+training:
+  batch_size: 64
+  epochs: 50
+  learning_rate: 0.001
+  optimizer: "adam"
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    factor: 0.5
+    patience: 5
+    min_lr: 0.00001
+  early_stopping:
+    patience: 10
+    restore_best_weights: true
+  label_smoothing: 0.1
+
+# Model Paths
+paths:
+  custom_model: "models/saved/custom_cnn_best.keras"
+  transfer_model: "models/saved/transfer_learning_best.keras"
+  training_history: "models/saved/training_history.pkl"
+  comparison_results: "models/saved/comparison_results.pkl"
+
+# Grad-CAM Configuration
+gradcam:
+  layer_name: null  # Auto-detect last conv layer
+  colormap: "jet"
+  alpha: 0.4
