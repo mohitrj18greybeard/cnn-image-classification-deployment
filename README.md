@@ -169,6 +169,14 @@ curl -X POST http://localhost:8000/predict \
   -F "model=efficientnet"
 ```
 
+### Batch Predict
+```bash
+curl -X POST http://localhost:8000/predict_batch \
+  -F "files=@image1.jpg" \
+  -F "files=@image2.jpg" \
+  -F "model=custom"
+```
+
 Response:
 ```json
 {

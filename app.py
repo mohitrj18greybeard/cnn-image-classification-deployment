@@ -230,6 +230,14 @@ elif "Grad-CAM" in page:
             ax2.imshow(hm_r, cmap="jet"); ax2.axis("off"); ax2.set_title("Heatmap")
             c2.pyplot(fig2); plt.close()
             c3.image(overlay, caption=f"Pred: {res['prediction']} ({res['confidence']:.1%})", use_container_width=True, clamp=True)
+            
+            st.markdown("""
+            ### 💡 How to read this?
+            **Grad-CAM (Gradient-weighted Class Activation Mapping)** uses the gradients of the target class flowing into the final convolutional layer to produce a localization map highlighting the important regions in the image for predicting the concept.
+            - **Red regions**: High influence on the model's decision.
+            - **Blue regions**: Low/No influence.
+            - **Insight**: In plant pathology, the model should focus on leaf lesions, spots, or discoloration rather than the background.
+            """)
 
 # ── HISTORY ──
 elif "History" in page:

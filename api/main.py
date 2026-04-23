@@ -35,8 +35,25 @@ async def predict(file: UploadFile = File(...), model: str = "custom"):
         img = np.array(Image.open(io.BytesIO(data)).convert("RGB"))
         predictor = get_predictor(model)
         return predictor.predict(img)
-    except Exception as e:
-        raise HTTPException(500, str(e))
+from typing import List
+
+@app.post("/predict_batch")
+async def predict_batch(files: List[UploadFile] = File(...), model: str = "custom"):
+    if model not in ("custom", "efficientnet"):
+        raise HTTPException(400, "model must be 'custom' or 'efficientnet'")
+    if len(files) > 32:
+        raise HTTPException(400, "Batch size too large (max 32)")
+    
+    results = []
+    predictor = get_predictor(model)
+    for file in files:
+        try:
+            data = await file.read()
+            img = np.array(Image.open(io.BytesIO(data)).convert("RGB"))
+            results.append({"filename": file.filename, **predictor.predict(img)})
+        except Exception as e:
+            results.append({"filename": file.filename, "error": str(e)})
+    return {"results": results}
 
 if __name__ == "__main__":
     import uvicorn
