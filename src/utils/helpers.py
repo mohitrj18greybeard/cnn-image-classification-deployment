@@ -6,7 +6,7 @@ def load_config(path: str = "config/config.yaml") -> dict:
     if not os.path.isabs(path) and not os.path.exists(path):
         root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         path = os.path.join(root, path)
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 def setup_logging(level="INFO"):

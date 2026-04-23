@@ -11,7 +11,7 @@ env/
 .idea/
 .ipynb_checkpoints/
 /data/
-/models/saved/
+# /models/saved/
 *.h5
 *.keras
 *.onnx

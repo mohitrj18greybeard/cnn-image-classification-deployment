@@ -1,0 +1,23 @@
+artifact_path: file:C:/Users/Dell/.gemini/antigravity/scratch/cnn-image-classification-deployment/mlruns/1/models/m-4cc1c4abf77a4543b38b50be2ef676cf/artifacts
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.14.3
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.11.0+cpu
+mlflow_version: 3.11.1
+model_id: m-4cc1c4abf77a4543b38b50be2ef676cf
+model_size_bytes: 20180279
+model_uuid: m-4cc1c4abf77a4543b38b50be2ef676cf
+prompts: null
+run_id: 735b38e88f1f4a6ea6489c90ee96d239
+utc_time_created: '2026-04-23 11:17:39.440468'
