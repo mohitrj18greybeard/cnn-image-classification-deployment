@@ -1,3 +1,6 @@
+# ⚡ DataPulse — Real-Time Analytics Dashboard
+
+
 <p align="center">
   <img src="https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?style=for-the-badge&logo=pytorch" />
   <img src="https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi" />
@@ -8,7 +11,7 @@
 </p>
 
 <p align="center">
-  <h1 align="center">🌿[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app//)</h1>
+  <h1 align="center">🌿[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/)</h1>
   <p align="center">
     <strong>Production-Grade Deep Learning Image Classification System</strong><br>
     An end-to-end machine learning pipeline for detecting fraudulent financial transactions using advanced imbalanced data handling techniques.
