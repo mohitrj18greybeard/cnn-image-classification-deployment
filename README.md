@@ -7,8 +7,7 @@
   <img src="https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions" />
 </p>
 
-<h1#🌿[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/)</h1>
-<h3 align="center">Production-Grade Deep Learning Image Classification System</h3>
+#🌿[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/) Production-Grade Deep Learning Image Classification System</h3>
 
 <p align="center">
 An end-to-end, FAANG-level computer vision system featuring <b>Custom CNN vs EfficientNet</b> model comparison, <b>Grad-CAM explainability</b>, <b>FastAPI microservice</b>, <b>MLflow experiment tracking</b>, and <b>interactive Streamlit dashboard</b> — fully containerized with CI/CD.
