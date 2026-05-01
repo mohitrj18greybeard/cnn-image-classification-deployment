@@ -1,4 +1,4 @@
-#  **🌿[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/)**
+#  **🌿[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/)** Production-grade Deep Learning Image Classification System
 
 <p align="center">
 An end-to-end, FAANG-level computer vision system featuring <b>Custom CNN vs EfficientNet</b> model comparison, <b>Grad-CAM explainability</b>, <b>FastAPI microservice</b>, <b>MLflow experiment tracking</b>, and <b>interactive Streamlit dashboard</b> — fully containerized with CI/CD.
