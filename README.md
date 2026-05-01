@@ -17,7 +17,7 @@ An end-to-end, FAANG-level computer vision system featuring <b>Custom CNN vs Eff
 
 ---
 
-##Cloud
+## Cloud
 
 **The app is live at: **[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/)**
 
