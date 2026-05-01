@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <h1 align="center">🌿[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/)</h1>
+  <h1 align="center">**🌿[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/)**</h1>
   <p align="center">
     <strong>Production-Grade Deep Learning Image Classification System</strong><br>
     An end-to-end machine learning pipeline for detecting fraudulent financial transactions using advanced imbalanced data handling techniques.
