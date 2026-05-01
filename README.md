@@ -14,6 +14,12 @@
 An end-to-end, FAANG-level computer vision system featuring <b>Custom CNN vs EfficientNet</b> model comparison, <b>Grad-CAM explainability</b>, <b>FastAPI microservice</b>, <b>MLflow experiment tracking</b>, and <b>interactive Streamlit dashboard</b> — fully containerized with CI/CD.
 </p>
 
+
+---
+
+##Cloud
+The app is live at: **[PlantGuard AI →](https://cnn-image-classification-deployment-yldn7fmageuksfr7cdia3c.streamlit.app/)**
+
 ---
 
 ## 🎯 Problem Statement
@@ -222,10 +228,24 @@ Response:
 
 ---
 
+
+## 👤 Author
+
+**Mohit**
+
+- GitHub: [@mohitrj18greybeard](https://github.com/mohitrj18greybeard)
+
+
+
+---
+
 ## 📜 License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-<p align="center"><b>Built with ❤️ by a Senior ML Engineer mindset</b></p>
+<p align="center">
+  <strong>⭐ If you found this project useful, please give it a star!</strong><br/>
+  <em>Built with ❤️ </em>
+</
